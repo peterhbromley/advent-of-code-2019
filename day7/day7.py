@@ -3,6 +3,8 @@ from itertools import cycle, permutations
 
 AMPLIFIERS = ['A', 'B', 'C', 'D', 'E']
 
+INPUT_VALUE = 0
+
 def get_input(input_path):
     with open(input_path) as f:
         line = f.readline()
@@ -12,7 +14,7 @@ def get_input(input_path):
 
 def run_amplifiers(tape, phases):
     """Part 1: Run all amplifiers once and get the output"""
-    in_val = 0
+    in_val = INPUT_VALUE
     for phase in phases:
         computer = Computer(tape=tape, ptr=0, in_vals=[phase, in_val])
         out = computer.run(output_mode=False)
@@ -26,13 +28,15 @@ def run_amplifier_circuit(tape, phases):
         amp : Computer(tape=tape.copy(), ptr=0, in_vals=[phase])
         for amp, phase in zip(AMPLIFIERS, phases)
     }
+
+    # Generator that loops around the amplifiers
     amp_gen = cycle(AMPLIFIERS)
     which_amp = next(amp_gen)
-    in_val = 0
+    in_val = INPUT_VALUE
     while not amplifiers['E'].halted:
         amp = amplifiers[which_amp]
-        amplifiers[which_amp].add_in_val(in_val)
-        out = amplifiers[which_amp].run(output_mode=True)
+        amp.add_in_val(in_val)
+        out = amp.run(output_mode=True)
         in_val = out
         which_amp = next(amp_gen)
 
@@ -48,13 +52,12 @@ def optimize(tape, perms, run_func):
 
 def main():
     tape = get_input('input.txt')
-    tape_tmp = get_input('input.txt')
 
     part_1_perms = permutations([0, 1, 2, 3, 4])
     part_2_perms = permutations([5, 6, 7, 8, 9])
 
     part_1 = optimize(tape, part_1_perms, run_amplifiers)
-    part_2 = optimize(tape_tmp, part_2_perms, run_amplifier_circuit)
+    part_2 = optimize(tape, part_2_perms, run_amplifier_circuit)
 
     print('Answer to part 1: {}'.format(part_1))
     print('Answer to part 2: {}'.format(part_2))

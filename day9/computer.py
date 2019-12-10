@@ -11,9 +11,13 @@ op_dict = {
 }
 
 class Computer:
-    def __init__(self, tape, ptr):
+    def __init__(self, tape, ptr, in_vals, base):
         self.tape = tape
         self.ptr = ptr
+        self.in_vals = in_vals
+        self.base = base
+        self.out = None
+        self.running = True
 
     # Get the value directly at ptr
     def direct_lookup(self, ptr):
@@ -35,15 +39,21 @@ class Computer:
     def getter(self, mode, ix):
         if mode == 0:
             return self.address_lookup(ix)
-        else:
+        elif mode == 1:
             return self.direct_lookup(ix)
+        elif mode == 2:
+            offset = self.direct_lookup(ix)
+            return self.direct_lookup(self.base + offset)
     
     # Handle which assign to use given mode
     def setter(self, mode, ix, val):
         if mode == 0:
             self.address_assign(ix, val)
-        else:
+        elif mode == 1:
             self.direct_assign(ix, val)
+        elif mode == 2:
+            offset = self.direct_lookup(ix)
+            return self.direct_assign(self.base + offset, val)
 
     @property
     def tape_head(self):
@@ -59,11 +69,15 @@ class Computer:
     def assign(self, mode, ix, val):
         return self.setter(mode, ix, val)
 
+    def add_in_val(self, val):
+        self.in_vals.append(val)
+
     # Lookup the first two params
-    def get_params(self, mode1, mode2):
-        p1 = self.lookup(mode1, self.ptr + 1)
-        p2 = self.lookup(mode2, self.ptr + 2)
-        return p1, p2
+    def get_params(self, *modes):
+        return tuple(
+            self.lookup(mode, self.ptr + i + 1)
+            for i, mode in enumerate(modes)
+        )
 
     # FUNCTIONS FOR PERFORMING OPERATIONS
     # ------------------------------------
@@ -78,26 +92,33 @@ class Computer:
         self.ptr += 4
 
 
-    def jump(self, op_val, *modes):
-        mode1, mode2, _ = modes
+    def jump(self, op_val, mode1, mode2, *modes):
         p1, p2 = self.get_params(mode1, mode2)
         op = op_dict[op_val]        
 
         self.ptr = p2 if op(p1) else self.ptr + 3
+
+    
+    def adjust_base(self, mode, *modes):
+        p, = self.get_params(mode)
+        self.base += p
+        self.ptr += 2
         
 
-    def get_input(self, *modes):
-        i = int(input("Enter input: "))
-        mode = 0    # can never be immediate mode
-        self.assign(mode, self.ptr + 1, i)
+    def get_input(self, mode, *modes, in_val=None):
+        if not self.in_vals:
+            in_val = int(input("Enter input: "))
+        else:
+            in_val = self.in_vals.pop(0)
+        self.assign(mode, self.ptr + 1, in_val)
         self.ptr += 2
 
 
-    def get_output(self, *modes):
-        mode, _, _ = modes
-        out = self.lookup(mode, self.ptr + 1)
-        print("PROGRAM OUTPUT: {}".format(out))
+    def get_output(self, mode, *modes):
+        self.out, = self.get_params(mode)
         self.ptr += 2
+        self.running = False
+        print("PROGRAM OUTPUT: {}".format(self.out))
 
 
     @property
@@ -111,6 +132,7 @@ class Computer:
             6 : self.chooser(self.jump, 6),
             7 : self.chooser(self.binary_op, 7),
             8 : self.chooser(self.binary_op, 8),
+            9 : self.adjust_base,
         }
     
     # For the functions that depend on op_val, pass the op_val here
@@ -131,19 +153,16 @@ class Computer:
         op_function = self.ops[op_val]
         op_function(*modes)
 
-    def run(self):
+    def run(self, output_mode=False):
+        # For output mode, can be used to stop the computer when it
+        # has just given *output* but not necessarily halted
+        self.running = True
+
         while not self.halted:
             self.perform_op()
 
-    
-def main():
-    with open('input.txt') as f:
-        line = f.readline()
+            if not self.running and output_mode:
+                return self.out
 
-    tape = list(map(int, line.split(',')))
-
-    computer = Computer(tape=tape, ptr=0)
-    computer.run()
-
-
-main()
+        self.running = False
+        return self.out

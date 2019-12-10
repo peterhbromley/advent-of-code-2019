@@ -10,15 +10,26 @@ def get_input(input_path):
 
 
 def build_orbit_graph(orbit_pairs):
+    """This graph points from a planet to the planet that it directly orbits."""
     return {orbiter : orbitee for orbitee, orbiter in orbit_pairs}
 
 
 def get_counts(graph):
+    """Get the total direct and indirect orbit counts.
+
+    Algorithm:
+     - Get the "outer planets" by finding the planets that are not orbited
+     - For each of these planets:
+        - Num orbits for a planet = 1 + (num orbits for orbitee)
+        - Calculate (num orbits for orbitee) recursively, and memoize
+    """
+
+    # Get planets that are not orbited
     orbiters = set(graph.keys())
     orbitees = set(graph.values())
     not_orbited = orbiters - orbitees
-    memo = {}
 
+    memo = {}
     def get_counts_helper(planet):
         if planet not in graph.keys():
             return 0
@@ -34,6 +45,16 @@ def get_counts(graph):
 
 
 def orbital_transfers(graph):
+    """Get the number of orbital transfers required to go from you to Santa.
+    
+    Algorithm:
+     - Start at your orbitee
+     - Iteratively trace your path through the graph as far as possible
+     - Start at Santa
+     - Iteratively trace path from Santa until it intersects with your path
+     - sum(Santa-to-intersection) + sum(intersection to you) - 1 = full path
+    """
+
     you_planet = graph['YOU']
     santa_planet = graph['SAN']
 
