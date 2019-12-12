@@ -8,18 +8,6 @@ Point = namedtuple('Point', ['x', 'y'])
 
 BLACK = '.'
 WHITE = '#'
-ROBO_CHAR = {
-    'up'    : '^',
-    'down'  : 'v',
-    'left'  : '<',
-    'right' : '>',
-}
-DIR_LABELS = {
-    0 : 'up',
-    1 : 'right',
-    2 : 'down',
-    3 : 'left',
-}
 
 class Robot:
     def __init__(self,
