@@ -14,6 +14,7 @@ def main():
     tape = get_input('input.txt')
     extra_memory = [MEMORY_INIT_VALUE]*EXTRA_MEMORY
     tape += extra_memory
+
     computer = Computer(
         tape=tape,
         ptr=0,
